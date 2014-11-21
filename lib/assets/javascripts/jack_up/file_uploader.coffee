@@ -33,7 +33,6 @@ class @JackUp.FileUploader
       if acceptableStatus && event.target.responseText && !@responded
         @responded = true && !self.isSync
         @trigger 'upload:success', responseText: event.target.responseText, event: event, file: file
-        console.log('responded')
 
       callback and callback()
 

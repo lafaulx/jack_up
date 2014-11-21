@@ -45,6 +45,4 @@ class @JackUp.Processor
     if @isSync
       @_upload(files)
 
-    console.log('Files length', files.length)
-
 _.extend JackUp.Processor.prototype, JackUp.Events

@@ -16,9 +16,19 @@ filesWithData = (event) ->
 class @JackUp.Processor
   constructor: (options) ->
     @uploadPath = options.path
+    @isSync = options.isSync
+
+  _upload: (files) ->
+    fileUploader = new JackUp.FileUploader({path: @uploadPath, isSync: @isSync})
+    @bubble 'upload:start', 'upload:success', 'upload:failure', 'upload:sentToServer', 'upload:percentComplete',
+      from: fileUploader
+
+    fileUploader.upload files
 
   processFilesForEvent: (event) =>
-    _.each filesWithData(event), (file) =>
+    files = filesWithData(event)
+
+    _.each files, (file) =>
       reader = new FileReader()
       reader.onload = (event) =>
         @trigger 'upload:dataRenderReady', result: event.target.result, file: file
@@ -29,10 +39,12 @@ class @JackUp.Processor
 
       reader.readAsDataURL(file)
 
-      fileUploader = new JackUp.FileUploader(path: @uploadPath)
-      @bubble 'upload:start', 'upload:success', 'upload:failure', 'upload:sentToServer', 'upload:percentComplete',
-        from: fileUploader
+      if !@isSync
+        @_upload(file)
 
-      fileUploader.upload file
+    if @isSync
+      @_upload(files)
+
+    console.log('Files length', files.length)
 
 _.extend JackUp.Processor.prototype, JackUp.Events

@@ -1,6 +1,7 @@
 class @JackUp.FileUploader
   constructor: (@options) ->
     @path = @options.path
+    @isSync = @options.isSync
     @responded = false
 
   _onProgressHandler: (file) =>
@@ -12,7 +13,8 @@ class @JackUp.FileUploader
         if percent == 100
           @trigger 'upload:sentToServer', file: file
 
-  _onReadyStateChangeHandler: (file) =>
+  _onReadyStateChangeHandler: (file, callback) =>
+    self = @
     (event) =>
       status = null
       return if event.target.readyState != 4
@@ -29,13 +31,16 @@ class @JackUp.FileUploader
         @trigger 'upload:failure', responseText: event.target.responseText, event: event, file: file
 
       if acceptableStatus && event.target.responseText && !@responded
-        @responded = true
+        @responded = true && !self.isSync
         @trigger 'upload:success', responseText: event.target.responseText, event: event, file: file
+        console.log('responded')
 
-  upload: (file) ->
+      callback and callback()
+
+  _executeUpload: (file, callback) ->
     xhr = new XMLHttpRequest()
     xhr.upload.addEventListener 'progress', @_onProgressHandler(file), false
-    xhr.addEventListener 'readystatechange', @_onReadyStateChangeHandler(file), false
+    xhr.addEventListener 'readystatechange', @_onReadyStateChangeHandler(file, callback), false
 
     xhr.open 'POST', @path, true
 
@@ -45,5 +50,17 @@ class @JackUp.FileUploader
 
     @trigger 'upload:start', file: file
     xhr.send file
+
+  upload: (file) ->
+    self = @
+
+    if @isSync
+      if file instanceof Array and file.length > 0
+        f = file.shift()
+
+        @_executeUpload f, ->
+          self.upload(file)
+    else 
+      @_executeUpload(file)
 
 _.extend JackUp.FileUploader.prototype, JackUp.Events
